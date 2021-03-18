@@ -12,6 +12,8 @@ from mmdet.datasets import replace_ImageToTensor
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
 
+import pdb
+
 
 def init_detector(config, checkpoint=None, device='cuda:0', cfg_options=None):
     """Initialize a detector from config file.
@@ -204,8 +206,11 @@ def show_result_pyplot(model,
         img,
         result,
         score_thr=score_thr,
-        show=True,
+        show=False,
         wait_time=wait_time,
         win_name=title,
         bbox_color=(72, 101, 241),
-        text_color=(72, 101, 241))
+        text_color=(72, 101, 241),
+        out_file='tmp.jpg',
+        font_size=1
+    )

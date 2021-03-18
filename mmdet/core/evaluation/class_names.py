@@ -89,13 +89,22 @@ def cityscapes_classes():
     ]
 
 
+def fabric_classes():
+    return [
+        'no', '沾污', '错花', '水印', '花毛', '缝头', '缝头印',
+               '虫', '破洞', '褶子', '织疵', '漏印',
+               '蜡斑', '色差', '网折', '其他'
+    ]
+
+
 dataset_aliases = {
     'voc': ['voc', 'pascal_voc', 'voc07', 'voc12'],
     'imagenet_det': ['det', 'imagenet_det', 'ilsvrc_det'],
     'imagenet_vid': ['vid', 'imagenet_vid', 'ilsvrc_vid'],
     'coco': ['coco', 'mscoco', 'ms_coco'],
     'wider_face': ['WIDERFaceDataset', 'wider_face', 'WDIERFace'],
-    'cityscapes': ['cityscapes']
+    'cityscapes': ['cityscapes'],
+    'fabric': ['fabric']
 }
 
 

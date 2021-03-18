@@ -25,9 +25,9 @@ import pdb
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config',
-                        default=os.path.join(project_dir, 'configs/pascal_voc/faster_rcnn_r50_fpn_1x_voc0712.py'),
+                        default=os.path.join(project_dir, 'configs/fabric_defect/cascade_rcnn_r50_fpn_70e_fabric.py'),
                         help='train config file path')
-    parser.add_argument('--work-dir', default='/data/models/mmdetection/voc', help='the dir to save logs and models')
+    parser.add_argument('--work-dir', default='/data/models/mmdetection/defect', help='the dir to save logs and models')
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
     parser.add_argument(
@@ -166,6 +166,8 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
+
+    # pdb.set_trace()
 
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:

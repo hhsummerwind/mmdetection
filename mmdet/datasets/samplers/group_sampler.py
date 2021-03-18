@@ -6,6 +6,8 @@ import torch
 from mmcv.runner import get_dist_info
 from torch.utils.data import Sampler
 
+import pdb
+
 
 class GroupSampler(Sampler):
 
@@ -21,6 +23,7 @@ class GroupSampler(Sampler):
                 size / self.samples_per_gpu)) * self.samples_per_gpu
 
     def __iter__(self):
+        # pdb.set_trace()
         indices = []
         for i, size in enumerate(self.group_sizes):
             if size == 0:
