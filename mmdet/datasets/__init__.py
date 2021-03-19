@@ -14,9 +14,10 @@ from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 
 from .fabric import FabricDataset
+from .panda import PandaDataset
 
 __all__ = [
-    'CustomDataset', 'XMLDataset', 'CocoDataset', 'FabricDataset', 'DeepFashionDataset',
+    'CustomDataset', 'XMLDataset', 'CocoDataset', 'FabricDataset', 'PandaDataset', 'DeepFashionDataset',
     'VOCDataset', 'CityscapesDataset', 'LVISDataset', 'LVISV05Dataset',
     'LVISV1Dataset', 'GroupSampler', 'DistributedGroupSampler',
     'DistributedSampler', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',

@@ -18,7 +18,7 @@ class Panda2COCO:
         self.images = []
         self.annotations = []
         self.categories = []
-        # self.img_id = 0
+        self.img_id = 0
         self.ann_id = 0
         self.mode = mode
 
@@ -37,7 +37,7 @@ class Panda2COCO:
             image_id = value['image id']
             image_size = value['image size']
             h, w = image_size['height'], image_size['width']
-            self.images.append(self._image(img_path, h, w, image_id))
+            self.images.append(self._image(img_dir, path, h, w, image_id))
 
             objects_list = value['objects list']
             for obj_dict in objects_list:
@@ -69,26 +69,49 @@ class Panda2COCO:
                     int(float(full_body['br']['y']) * h),
                 ]
 
-                if head_box[1] > h and head_box[0] > w:
+                if head_box[1] < h and head_box[0] < w:
                     label = panda_name2label['head']
                     annotation = self._annotation(label, head_box, h, w)
                     if annotation is not None:
                         self.annotations.append(annotation)
+                        self.ann_id += 1
+                if visible_body_box[1] < h and visible_body_box[0] < w:
+                    label = panda_name2label['visible_body']
+                    annotation = self._annotation(label, visible_body_box, h, w)
+                    if annotation is not None:
+                        self.annotations.append(annotation)
+                        self.ann_id += 1
+                if full_body_box[1] < h and full_body_box[0] < w:
+                    label = panda_name2label['full_body']
+                    annotation = self._annotation(label, full_body_box, h, w)
+                    if annotation is not None:
+                        self.annotations.append(annotation)
+                        self.ann_id += 1
 
-                if bbox[1] >= h:
-                    # print(bbox)
+            vehicle_ann_result = pd.read_json(open(vechicle_ann_file, "r"))
+            vehicle_value = vehicle_ann_result[path]
+            vehicle_objects_list = vehicle_value['objects list']
+            for obj_dict in vehicle_objects_list:
+                category = obj_dict['category']
+                if category == 'vehicles' or category == 'unsure':
                     continue
-                if bbox[0] >= w:
-                    # print(bbox)
-                    continue
-                label = panda_name2label[defect_name]
-                annotation = self._annotation(label, bbox, h, w)
-                if annotation is not None:
-                    self.annotations.append(annotation)
-                self.ann_id += 1
-            # self.img_id += 1
+                rect = obj_dict['rect']
+                vechicle_box = [
+                    int(float(rect['tl']['x']) * w),
+                    int(float(rect['tl']['y']) * h),
+                    int(float(rect['br']['x']) * w),
+                    int(float(rect['br']['y']) * h),
+                ]
+                if vechicle_box[1] < h and vechicle_box[0] < w:
+                    label = panda_name2label['vehicle']
+                    annotation = self._annotation(label, vechicle_box, h, w)
+                    if annotation is not None:
+                        self.annotations.append(annotation)
+                        self.ann_id += 1
+
+            self.img_id += 1
         instance = {}
-        instance['info'] = 'fabric defect'
+        instance['info'] = 'panda'
         instance['license'] = ['none']
         instance['images'] = self.images
         instance['annotations'] = self.annotations
@@ -110,12 +133,12 @@ class Panda2COCO:
             category['supercategory'] = 'panda_name'
             self.categories.append(category)
 
-    def _image(self, path, h, w, img_id):
+    def _image(self, img_dir, path, h, w, img_id):
         image = {}
         image['height'] = h
         image['width'] = w
         image['id'] = img_id
-        image['file_name'] = os.path.basename(path)
+        image['file_name'] = os.path.join(os.path.basename(img_dir), path)#os.path.basename(path)
         return image
 
     def _annotation(self, label, bbox, h, w):
@@ -158,12 +181,14 @@ class Panda2COCO:
             json.dump(instance, fp, indent=1, separators=(',', ': '))
 
 
-'''转换有瑕疵的样本为coco格式'''
+'''转换样本为coco格式'''
 # img_dir = "/data/datasets/天池广东2019布匹瑕疵检测/data/fabric/defect_Images"
 img_dirs = ['/data/datasets/PANDA/panda_round1_train_202104_part1',
             '/data/datasets/PANDA/panda_round1_train_202104_part2']
-anno_dir = "/data/datasets/天池广东2019布匹瑕疵检测/data/fabric/Annotations/anno_train_round2.json"
-fabric2coco = Panda2COCO()
-train_instance = fabric2coco.to_coco(anno_dir, img_dir)
-fabric2coco.save_coco_json(train_instance, "/data/datasets/天池广东2019布匹瑕疵检测/data/fabric/annotations/"
-                           + 'instances_{}.json'.format("train_20191004_mmd"))
+anno_dir = "/data/datasets/PANDA/panda_round1_train_annos_202104"
+person_ann = os.path.join(anno_dir, 'person_bbox_train.json')
+vechicle_ann = os.path.join(anno_dir, 'vehicle_bbox_train.json')
+panda2coco = Panda2COCO()
+train_instance = panda2coco.to_coco(person_ann, vechicle_ann)
+panda2coco.save_coco_json(train_instance, "/data/datasets/PANDA/coco/"
+                          + 'instances_{}.json'.format("train_panda"))
