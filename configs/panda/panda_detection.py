@@ -5,8 +5,9 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
-    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='GtBoxBasedCrop', crop_size=(3000, 2200)),
+    dict(type='Resize', img_scale=(1500, 1100), keep_ratio=True),
+    dict(type='RandomFlip', flip_ratio=0.5, direction='horizontal'),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
@@ -16,7 +17,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(1333, 800),
+        img_scale=(1500, 1100),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -35,11 +36,11 @@ data = dict(
         ann_file=data_root + 'coco/instances_train_panda.json',
         img_prefix=data_root,
         pipeline=train_pipeline),
-    val=dict(
-        type=dataset_type,
-        ann_file=data_root + 'coco/instances_train_panda.json',
-        img_prefix=data_root,
-        pipeline=test_pipeline),
+    # val=dict(
+    #     type=dataset_type,
+    #     ann_file=data_root + 'coco/instances_train_panda.json',
+    #     img_prefix=data_root,
+    #     pipeline=test_pipeline),
     # test=dict(
     #     type=dataset_type,
     #     ann_file=data_root + 'annotations/instances_val2017.json',

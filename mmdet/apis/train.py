@@ -13,7 +13,7 @@ from mmdet.core import DistEvalHook, EvalHook
 from mmdet.datasets import (build_dataloader, build_dataset,
                             replace_ImageToTensor)
 from mmdet.utils import get_root_logger
-
+import pdb
 
 def set_random_seed(seed, deterministic=False):
     """Set random seed.
@@ -167,4 +167,5 @@ def train_detector(model,
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
         runner.load_checkpoint(cfg.load_from)
+    # pdb.set_trace()
     runner.run(data_loaders, cfg.workflow)

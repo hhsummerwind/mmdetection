@@ -1809,3 +1809,111 @@ class CutOut(object):
                      else f'cutout_shape={self.candidates}, ')
         repr_str += f'fill_in={self.fill_in})'
         return repr_str
+
+
+@PIPELINES.register_module()
+class GtBoxBasedCrop(object):
+    """
+        Crop around the gt bbox.
+        Note:
+            Here 'img_shape' is change to the shape of img_cropped.
+    """
+
+    def __init__(self, crop_size):
+        self.crop_size = crop_size  # (w, h)
+
+    def __call__(self, results):
+
+        img = results['img']
+        gt_bboxes = results['gt_bboxes']
+        gt_labels = results['gt_labels']
+
+        img_cropped, gt_bboxes_cropped, gt_labels_cropped = \
+            self._crop_patch(img, gt_bboxes, gt_labels)
+
+        results['img'] = img_cropped
+        results['gt_bboxes'] = gt_bboxes_cropped
+        results['gt_labels'] = gt_labels_cropped
+        results['img_shape'] = img_cropped.shape
+
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += '(crop_size={})'.format(self.crop_size)
+        return repr_str
+
+    def _crop_patch(self, img, gt_bboxes, gt_labels):
+
+        H, W, C = img.shape
+        px, py = self.crop_size
+
+        obj_num = gt_bboxes.shape[0]
+
+        select_gt_id = np.random.randint(0, obj_num)
+        x1, y1, x2, y2 = gt_bboxes[select_gt_id, :]
+        x1, y1, x2, y2 = max(0,x1), max(0,y1), min(x2,W), min(y2,H)    # 确保x1,y1,x2,y2不能超出原图，否则下面CROP会出错
+
+        # print("obj_num:",obj_num)
+        # print("select_gt:",gt_labels[select_gt_id])
+        # print("H,W,px,py,PATCH:",H,W,px,py,x1,y1,x2,y2,)
+        # print("nx,ny:",max(x2 - px, 0),min(x1 + 1, W - px + 1),max(y2 - py, 0),min(y1 + 1, H - py + 1))
+
+        if x2 - x1 > px:    # 大于px,py的边截取至px,py
+            nx = np.random.randint(x1, x2 - px + 1)
+        else:   # 小于等于px的边从max(x2 - px, 0)到min(x1 + 1, W - px + 1)之间取左上角x
+            nx = np.random.randint(max(x2 - px, 0), min(x1 + 1, W - px + 1))
+
+        if y2 - y1 > py:
+            ny = np.random.randint(y1, y2 - py + 1)
+        else:
+            ny = np.random.randint(max(y2 - py, 0), min(y1 + 1, H - py + 1))
+
+        patch_coord = np.zeros((1, 4), dtype="int")
+        patch_coord[0, 0] = nx
+        patch_coord[0, 1] = ny
+        patch_coord[0, 2] = nx + px
+        patch_coord[0, 3] = ny + py
+        index = self._compute_overlap(patch_coord, gt_bboxes, 0.5)
+        index = np.squeeze(index, axis=0)
+        index[select_gt_id] = True
+
+        patch = img[ny: ny + py, nx: nx + px, :]
+        gt_bboxes = gt_bboxes[index, :]
+        gt_labels = gt_labels[index]
+
+        gt_bboxes[:, 0] = np.maximum(gt_bboxes[:, 0] - patch_coord[0, 0], 0)
+        gt_bboxes[:, 1] = np.maximum(gt_bboxes[:, 1] - patch_coord[0, 1], 0)
+        gt_bboxes[:, 2] = np.minimum(gt_bboxes[:, 2] - patch_coord[0, 0], px - 1)
+        gt_bboxes[:, 3] = np.minimum(gt_bboxes[:, 3] - patch_coord[0, 1], py - 1)
+
+        return patch, gt_bboxes, gt_labels
+
+    def _compute_overlap(self, a, b, over_threshold=0.5):
+        """
+        Parameters
+        ----------
+        a: (N, 4) ndarray of float
+        b: (K, 4) ndarray of float
+        Returns
+        -------
+        overlaps: (N, K) ndarray of overlap between boxes and query_boxes
+        """
+        area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
+
+        iw = np.minimum(np.expand_dims(a[:, 2], axis=1), b[:, 2]) - np.maximum(np.expand_dims(a[:, 0], 1), b[:, 0])
+        ih = np.minimum(np.expand_dims(a[:, 3], axis=1), b[:, 3]) - np.maximum(np.expand_dims(a[:, 1], 1), b[:, 1])
+
+        iw = np.maximum(iw, 0)
+        ih = np.maximum(ih, 0)
+
+        # ua = np.expand_dims((a[:, 2] - a[:, 0]) * (a[:, 3] - a[:, 1]), axis=1) + area - iw * ih
+        ua = area
+
+        ua = np.maximum(ua, np.finfo(float).eps)
+
+        intersection = iw * ih
+
+        overlap = intersection / ua
+        index = overlap > over_threshold
+        return index
